@@ -121,3 +121,89 @@ SELECT
 
 FROM funnel_revenue;
 
+
+--EXTRAS--
+SELECT 
+    traffic_source, 
+    COUNT(*) AS total_purchases
+FROM user_events
+WHERE event_type = 'purchase'
+GROUP BY traffic_source
+ORDER BY total_purchases DESC;
+
+
+--number of perchases per week---
+
+
+SELECT 
+    traffic_source,
+    date_trunc('week', event_date)::date AS purchase_week,
+    COUNT(*) AS number_of_purchases,
+    COUNT(DISTINCT user_id) AS unique_buyers
+FROM user_events
+WHERE event_type = 'purchase'
+  AND traffic_source IN ('email', 'social')
+GROUP BY 
+    traffic_source, 
+    date_trunc('week', event_date)
+ORDER BY 
+    traffic_source, 
+    purchase_week DESC;
+
+--Weekly breakdown with weekday vs weekend split---
+
+SELECT 
+    traffic_source,
+    date_trunc('week', event_date)::date AS purchase_week_start,
+    
+    COUNT(CASE WHEN EXTRACT(DOW FROM event_date) BETWEEN 1 AND 5 
+               THEN 1 END) AS weekday_purchases,      -- Mon-Fri
+    
+    COUNT(CASE WHEN EXTRACT(DOW FROM event_date) IN (0, 6) 
+               THEN 1 END) AS weekend_purchases,      -- Sat + Sun
+    
+    COUNT(*) AS total_purchases,
+    
+    COUNT(DISTINCT user_id) AS unique_buyers_per_week,
+
+    ROUND(
+        COUNT(CASE WHEN EXTRACT(DOW FROM event_date) IN (0, 6) THEN 1 END)::numeric 
+        / COUNT(*) * 100, 1
+    ) AS weekend_percentage
+
+FROM user_events
+WHERE event_type = 'purchase'
+  AND traffic_source IN ('email', 'social')
+GROUP BY 
+    traffic_source, 
+    date_trunc('week', event_date)
+ORDER BY 
+    traffic_source, 
+    purchase_week_start DESC;
+
+--Simple overall summary (total weekdays vs weekends — no weeks)---
+
+SELECT 
+    traffic_source,
+    
+    COUNT(CASE WHEN EXTRACT(DOW FROM event_date) BETWEEN 1 AND 5 
+               THEN 1 END) AS weekday_purchases,      -- Mon-Fri
+    
+    COUNT(CASE WHEN EXTRACT(DOW FROM event_date) IN (0, 6) 
+               THEN 1 END) AS weekend_purchases,      -- Sat + Sun
+    
+    COUNT(*) AS total_purchases,
+    
+    ROUND(
+        COUNT(CASE WHEN EXTRACT(DOW FROM event_date) IN (0, 6) THEN 1 END)::numeric 
+        / COUNT(*) * 100, 1
+    ) AS weekend_percentage
+
+FROM user_events
+WHERE event_type = 'purchase'
+  AND traffic_source IN ('email', 'social')
+GROUP BY traffic_source
+ORDER BY traffic_source;
+
+
+	
